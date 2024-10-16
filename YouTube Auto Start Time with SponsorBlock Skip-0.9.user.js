@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         YouTube Auto Start Time with SponsorBlock Skip
 // @namespace    http://tampermonkey.net/
-// @version      0.9
-// @description  Автоматическое начало воспроизведения видео на YouTube с определенного времени с пропуском спонсорских сегментов SponsorBlock
+// @version      1.0
+// @description  Автоматическое начало воспроизведения видео на YouTube с определенного времени с пропуском спонсорских сегментов SponsorBlock, если длина видео больше минимальной
 // @author       Вы
 // @match        *://*.youtube.com/*
 // @grant        none
@@ -12,6 +12,7 @@
     'use strict';
 
     const targetTime = 90; // Установите время начала (в секундах)
+    const MinimumVideoLength = 4 * 60; // Минимальная длина видео в секундах (4 минуты)
 
     // Функция для получения данных от SponsorBlock API
     async function fetchSponsorBlockSegments(videoId) {
@@ -51,6 +52,12 @@
     async function setStartTime() {
         const video = document.querySelector('video');
         if (!video) return;
+
+        // Проверка длительности видео
+        if (video.duration < MinimumVideoLength) {
+            console.log('Видео слишком короткое, скрипт не будет выполняться.');
+            return; // Если видео короче минимальной длины, не выполнять дальнейшие действия
+        }
 
         const videoId = new URLSearchParams(window.location.search).get('v');
         if (!videoId) return;
