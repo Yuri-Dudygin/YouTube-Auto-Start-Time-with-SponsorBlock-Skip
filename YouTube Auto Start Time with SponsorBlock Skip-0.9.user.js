@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         YouTube Auto Start Time with Channel Settings and SponsorBlock Support
+// @name         YouTube Auto Start Time with Channel Settings
 // @namespace    http://tampermonkey.net/
-// @version      3.4
-// @description  Автоматическое начало воспроизведения видео на YouTube с учётом SponsorBlock и сохранением времени для каналов
+// @version      3.5
+// @description  Автоматическое начало воспроизведения видео на YouTube с учётом сохранения времени для каналов
 // @match        *://*.youtube.com/*
 // @grant        none
 // ==/UserScript==
@@ -13,7 +13,6 @@
     const targetTime = 90; // Время по умолчанию
     const MinimumVideoLength = 420; // Минимальная длина видео для перемотки
     const channelsKey = 'Channels'; // Ключ для хранения каналов
-    const SponsorBlockAPI = 'https://sponsor.ajay.app/api/skipSegments'; // API SponsorBlock
     const debugWindowOpacity = 0.8; // Прозрачность окна лога (от 0 до 1)
 
     let lastProcessedVideoId = null; // Для предотвращения повторной обработки
@@ -97,7 +96,7 @@
     };
 
     // Установка времени начала воспроизведения
-    const setStartTime = async () => {
+    const setStartTime = () => {
         if (!isVideoPage()) return;
 
         const video = document.querySelector('video');
@@ -124,37 +123,17 @@
         }
 
         logDebug(`[Установка времени начала] Канал: ${channelId}, Видео: ${videoId}`);
-        await seekToStartTime(video, startTime, videoId);
+        seekToStartTime(video, startTime);
     };
 
     // Логика перемотки видео
-    const seekToStartTime = async (video, startTime, videoId) => {
-        const adjustedTime = await adjustForSponsorBlock(startTime, videoId);
-        if (Math.abs(video.currentTime - adjustedTime) > 1) {
-            video.currentTime = adjustedTime;
-            logDebug(`[Перемотка] Видео на ${adjustedTime} секунд`);
+    const seekToStartTime = (video, startTime) => {
+        if (Math.abs(video.currentTime - startTime) > 1) {
+            video.currentTime = startTime;
+            logDebug(`[Перемотка] Видео на ${startTime} секунд`);
         } else {
             logDebug(`[Перемотка не требуется] Текущая точка: ${video.currentTime}`);
         }
-    };
-
-    // Корректировка времени с учётом SponsorBlock
-    const adjustForSponsorBlock = async (startTime, videoId) => {
-        try {
-            const response = await fetch(`${SponsorBlockAPI}?videoID=${videoId}`);
-            const data = await response.json();
-            const sponsorSegments = data.filter(segment => segment.category.includes('sponsor'));
-            for (const segment of sponsorSegments) {
-                const [start, end] = segment.segment;
-                if (startTime >= start && startTime <= end) {
-                    logDebug(`[SponsorBlock] Время ${startTime} попало в интервал ${start}-${end}. Перемотка на ${end}`);
-                    return end;
-                }
-            }
-        } catch (error) {
-            logDebug(`[Ошибка SponsorBlock] ${error.message}`);
-        }
-        return startTime;
     };
 
     // Получить список каналов из локального хранилища
@@ -200,7 +179,7 @@
     };
 
     // Инициализация скрипта
-    const initializeScript = async () => {
+    const initializeScript = () => {
         if (!isVideoPage()) return;
 
         createDebugWindow();
@@ -209,7 +188,7 @@
         const channelId = document.querySelector('ytd-video-owner-renderer a')?.href.split('/').pop();
 
         if (video && channelId) {
-            await setStartTime();
+            setStartTime();
             addControlButtons(channelId);
         }
     };
