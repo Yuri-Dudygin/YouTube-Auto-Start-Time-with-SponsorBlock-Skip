@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         YouTube Auto Start Time with Channel Settings and SponsorBlock Support
 // @namespace    http://tampermonkey.net/
-// @version      3.0
+// @version      3.4
 // @description  Автоматическое начало воспроизведения видео на YouTube с учётом SponsorBlock и сохранением времени для каналов
 // @match        *://*.youtube.com/*
 // @grant        none
@@ -17,6 +17,7 @@
     const debugWindowOpacity = 0.8; // Прозрачность окна лога (от 0 до 1)
 
     let lastProcessedVideoId = null; // Для предотвращения повторной обработки
+    let messageCounter = 1; // Порядковый номер сообщения в логе
 
     // Проверяем, является ли текущая страница страницей с видео
     const isVideoPage = () => {
@@ -33,36 +34,30 @@
         container.style.position = 'fixed';
         container.style.bottom = '20px';
         container.style.right = '20px';
-        container.style.width = '400px';
+        container.style.width = '300px'; // Уменьшен размер окна
+        container.style.height = '150px'; // Уменьшен размер окна
         container.style.zIndex = '10000';
-        container.style.backgroundColor = `rgba(51, 51, 51, ${debugWindowOpacity})`; // Используем прозрачность
+        container.style.backgroundColor = `rgba(51, 51, 51, ${debugWindowOpacity})`;
         container.style.border = '1px solid #aaa';
         container.style.borderRadius = '5px';
         container.style.padding = '10px';
+        container.style.fontSize = '10px'; // Уменьшен размер шрифта
 
-        const debugWindow = document.createElement('textarea');
-        debugWindow.id = 'debugWindow';
-        debugWindow.style.width = '100%';
-        debugWindow.style.height = '200px';
-        debugWindow.style.backgroundColor = 'transparent'; // Прозрачный фон для внутреннего текстового окна
-        debugWindow.style.color = '#fff';
-        debugWindow.style.border = 'none';
-        debugWindow.style.borderRadius = '5px';
-        debugWindow.style.fontSize = '12px';
-        debugWindow.style.overflowY = 'scroll';
-        debugWindow.readOnly = true;
-
+        // Кнопка копирования лога
         const copyButton = document.createElement('button');
         copyButton.textContent = 'Copy Debug Log';
-        copyButton.style.marginTop = '10px';
+        copyButton.style.position = 'absolute';
+        copyButton.style.top = '-30px';
+        copyButton.style.right = '0';
         copyButton.style.padding = '5px 10px';
         copyButton.style.cursor = 'pointer';
-        copyButton.style.backgroundColor = '#4CAF50';
+        copyButton.style.backgroundColor = 'rgba(169, 169, 169, 0.6)'; // Полупрозрачный серый
         copyButton.style.color = 'white';
         copyButton.style.border = 'none';
         copyButton.style.borderRadius = '5px';
 
         copyButton.onclick = () => {
+            const debugWindow = document.getElementById('debugWindow');
             const tempTextArea = document.createElement('textarea');
             tempTextArea.value = debugWindow.textContent;
             document.body.appendChild(tempTextArea);
@@ -72,20 +67,32 @@
             alert('Debug log copied to clipboard!');
         };
 
-        container.appendChild(debugWindow);
+        // Окно лога
+        const debugWindow = document.createElement('textarea');
+        debugWindow.id = 'debugWindow';
+        debugWindow.style.width = '100%';
+        debugWindow.style.height = '100%';
+        debugWindow.style.backgroundColor = 'transparent';
+        debugWindow.style.color = '#fff';
+        debugWindow.style.border = 'none';
+        debugWindow.style.borderRadius = '5px';
+        debugWindow.style.overflowY = 'scroll';
+        debugWindow.readOnly = true;
+
         container.appendChild(copyButton);
+        container.appendChild(debugWindow);
 
         document.body.appendChild(container);
     };
 
-    // Лог отладки
+    // Лог отладки с порядковым номером сообщения
     const logDebug = (message) => {
-        const timestamp = new Date().toLocaleTimeString();
         const debugWindow = document.getElementById('debugWindow');
         if (debugWindow) {
-            debugWindow.textContent += `[${timestamp}] ${message}\n`;
+            // Вставляем новое сообщение в начало, чтобы оно отображалось сверху
+            debugWindow.textContent = `[${messageCounter++}] ${message}\n` + debugWindow.textContent;
         } else {
-            console.log(`[${timestamp}] ${message}`);
+            console.log(`[${messageCounter++}] ${message}`);
         }
     };
 
